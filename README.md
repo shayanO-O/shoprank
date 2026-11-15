@@ -2,7 +2,7 @@
 
 ShopRank recommends items to users, in this case movies. A recommender system decides what a person sees first on a page, so ranking quality matters much more than plain accuracy.
 
-We built this recommender in two stages. Stage one quickly finds a few hundred likely items from thousands of options. Stage two re-orders those items with a smarter model and returns the best ten. This is a course project for MLOps, and we use the MovieLens 25M dataset.
+We built this recommender in two stages. Stage one quickly finds a few hundred likely items from thousands of options. Stage two re-orders those items with a smarter model and returns the best ten.
 
 ## Remote Links
 
