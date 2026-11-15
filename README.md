@@ -1,23 +1,44 @@
 # ShopRank
 
-ShopRank is a two-stage recommendation system built for online retail discovery.
+ShopRank recommends items to users, in this case movies. A recommender system decides what a person sees first on a page, so ranking quality matters much more than plain accuracy.
+
+We built this recommender in two stages. Stage one quickly finds a few hundred likely items from thousands of options. Stage two re-orders those items with a smarter model and returns the best ten. This is a course project for MLOps, and we use the MovieLens 25M dataset.
+
+## Remote Links
+
+| Name | Link |
+|---|---|
+| DagsHub Repository | https://dagshub.com/shayanO-O/shoprank |
+
+## Repository Layout
+
+- `src/`: pipeline scripts for data preparation, models, evaluation and registration
+- `tests/`: unit tests for evaluation metrics and time splitting
+- `notebooks/`: the Google Colab notebook used for cloud training
+- `data/`: raw and processed data folders
+- `models/`: saved model weights, FAISS index and item vectors
+- `metrics/`: validation results, baseline scores and final evaluation files
+- `dvc.yaml`: pipeline definition that links all stages together
+- `params.yaml`: shared settings and hyperparameter values
+
+Files in `data/` and `models/` are tracked by DVC and stored on DagsHub, so they are not stored in GitHub.
 
 ## Phase 1
 
-Phase 1 establishes the machine learning foundation, data versioning, experiment tracking and model registration.
+Phase 1 covers the core machine learning pipeline, data versioning, experiment tracking and model registration.
 
-- Data Versioning: Tracked the raw MovieLens 25M dataset and processed outputs with DVC connected to DagsHub storage.
-- Data Validation: Verified interactions against duplicate records, future timestamps, missing catalog identifiers and null entries.
-- Preprocessing and Temporal Split: Filtered active users and items, extracted movie release years and genres, and partitioned data chronologically into train, ranker, validation and test windows.
-- Baseline Models: Built four baseline systems including popular overall, recent popular, item cooccurrence and TruncatedSVD matrix factorization. TruncatedSVD is used as the matrix factorization baseline because implicit is not installed on this machine.
-- Two-Stage Recommender: Trained a PyTorch two-tower retrieval model with in-batch negatives, built a FAISS IndexFlatIP candidate index, and trained a LightGBM LambdaRank re-ranking model.
-- Experiment Tracking: Recorded parameters, ranking metrics and run tags on the DagsHub MLflow tracking server.
-- Model Registry: Bundled neural embeddings, FAISS index and ranker booster into an MLflow pyfunc artifact registered with version tags.
-- Cloud Execution: Created an automated Google Colab notebook to pull dataset files, reproduce the full DVC pipeline and push updated outputs.
+- We track the raw MovieLens dataset and all processed parquet files with DVC using DagsHub cloud storage.
+- We run data quality checks for duplicate rows, future dates and missing values, then split the data by time into train, ranker, validation and test sets.
+- We evaluate four baselines: popular overall, recent popular, item cooccurrence and matrix factorization. We used TruncatedSVD for matrix factorization because the implicit package would not install on our machine.
+- We built a two-stage recommender using a PyTorch two-tower neural network with a FAISS index for candidate retrieval and a LightGBM LambdaRank model for re-ranking.
+- We track all parameters, metrics and artifacts with MLflow on DagsHub, and we register the champion model version.
+- We built a Google Colab notebook that runs the full pipeline from data pull to model registration.
 
-This project implements a standard model pipeline and does not use RAG or agentic workflows.
+This project is a standard model pipeline. We do not use RAG or agentic workflows.
 
-## Results
+### Results
+
+These are the test results, and we compare our main two-stage system with the four baselines.
 
 | Model | Val NDCG@10 | Val Recall@50 | Test NDCG@10 | Test Recall@50 | Catalog Coverage | Diversity |
 |---|---|---|---|---|---|---|
@@ -29,35 +50,40 @@ This project implements a standard model pipeline and does not use RAG or agenti
 | Retrieval + Ranker | 0.3299 | 0.1873 | 0.3203 | 0.1751 | 0.1051 | 0.6523 |
 | Cold Start Only | 0.3757 | 0.2083 | 0.3564 | 0.1927 | 0.0010 | 0.6662 |
 
-CPU inference latency for the two-stage pipeline is 3.13 ms p50 and 5.38 ms p95 over 500 requests.
-
-The two-stage pipeline achieves the highest NDCG@10 on both validation (0.3299) and test (0.3203), beating all four baseline approaches. Recent popular achieves a higher Recall@50 (0.1997) than the two-stage system (0.1873) because frequent items dominate dense interactions.
-
-## Repository Layout
-
-- `src/`: Pipeline scripts for validation, preprocessing, feature extraction, baselines, retrieval, ranking, evaluation and model registration
-- `tests/`: Unit test suite covering metrics and temporal split integrity
-- `notebooks/`: Google Colab training notebook
-- `data/`: DVC tracked raw and processed datasets
-- `models/`: Trained model weights, FAISS index and item embeddings
-- `metrics/`: Pipeline evaluation outputs and validation metrics
-- `dvc.yaml`: DVC pipeline definition linking all stages
+NDCG@10 measures ranking quality in the top ten results, and Recall@50 measures the share of relevant items found in the top fifty candidates.
 
 ## How To Reproduce
 
+Follow these steps to run the project:
+
+1. Clone the repo and enter the folder.
 ```bash
 git clone https://github.com/shayanO-O/shoprank.git
 cd shoprank
+```
+
+2. Install the packages with pip.
+```bash
 pip install -r requirements.txt
+```
+
+3. Add your DagsHub username and token to a `.env` file. You can check `.env.example` to see the format.
+```bash
+cp .env.example .env
+```
+
+4. Pull the dataset files from DagsHub.
+```bash
 dvc pull
+```
+
+5. Run the full pipeline.
+```bash
 dvc repro
 ```
 
-## DagsHub Links
-
-- MLflow Tracking: https://dagshub.com/shayanO-O/shoprank.mlflow
-- Model Registry: https://dagshub.com/shayanO-O/shoprank.models
+The full training run is meant for Google Colab with a GPU. You can run `notebooks/train_colab.ipynb` directly.
 
 ## Limitations
 
-MovieLens contains explicit star ratings rather than real implicit user clicks. Cold start handling covers new users with recent popular recommendations, while new items are not handled yet.
+MovieLens contains star ratings instead of real user clicks. New items are not handled yet, and new users receive the most popular recent items.
