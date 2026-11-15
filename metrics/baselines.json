@@ -1,0 +1,26 @@
+{
+  "popular_overall": {
+    "ndcg_at_10": 0.2735277146280222,
+    "recall_at_50": 0.1622907305030573,
+    "catalog_coverage": 0.015597752373571014,
+    "diversity": 0.727676629788909
+  },
+  "recent_popular": {
+    "ndcg_at_10": 0.30695827724074937,
+    "recall_at_50": 0.19971385505948913,
+    "catalog_coverage": 0.009978686301104437,
+    "diversity": 0.6732602274905244
+  },
+  "item_cooccurrence": {
+    "ndcg_at_10": 0.30522724494395226,
+    "recall_at_50": 0.1968711667527393,
+    "catalog_coverage": 0.02925789575663631,
+    "diversity": 0.6745933650394441
+  },
+  "matrix_factorization": {
+    "ndcg_at_10": 0.3077054275031646,
+    "recall_at_50": 0.19845357243967607,
+    "catalog_coverage": 0.06190660724665763,
+    "diversity": 0.6712752235394668
+  }
+}

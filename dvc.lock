@@ -1,0 +1,356 @@
+schema: '2.0'
+stages:
+  validate:
+    cmd: python src/validate.py
+    deps:
+    - path: data/raw/ml-25m.zip
+      hash: md5
+      md5: 6b51fb2759a8657d3bfcbfc42b592ada
+      size: 261978986
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/validate.py
+      hash: md5
+      md5: bc9c44240cba7573445715dafd4dc8fc
+      size: 1957
+    params:
+      params.yaml:
+        data.raw_path: data/raw/ml-25m.zip
+    outs:
+    - path: metrics/validation.json
+      hash: md5
+      md5: bc1bb2eef778f5efdb8191cf9e525659
+      size: 158
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - path: data/raw/ml-25m.zip
+      hash: md5
+      md5: 6b51fb2759a8657d3bfcbfc42b592ada
+      size: 261978986
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/preprocess.py
+      hash: md5
+      md5: 6c1ef5bf68b42dc078d7b6899411f07b
+      size: 2458
+    params:
+      params.yaml:
+        data.min_item_ratings: 20
+        data.min_user_ratings: 20
+        data.sample_users: 30000
+        data.seed: 42
+    outs:
+    - path: data/processed/interactions.parquet
+      hash: md5
+      md5: ea0590a2c14935556b1e3cb8389311f1
+      size: 30463471
+    - path: data/processed/items.parquet
+      hash: md5
+      md5: 5ece4aabec9a87568eb82b2762e60d66
+      size: 300085
+  split:
+    cmd: python src/split.py
+    deps:
+    - path: data/processed/interactions.parquet
+      hash: md5
+      md5: ea0590a2c14935556b1e3cb8389311f1
+      size: 30463471
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/split.py
+      hash: md5
+      md5: dd0c27027518aafcd37c6dc5a0513d00
+      size: 1676
+    params:
+      params.yaml:
+        split.ranker_quantile: 0.8
+        split.train_quantile: 0.7
+        split.val_quantile: 0.9
+    outs:
+    - path: data/processed/ranker.parquet
+      hash: md5
+      md5: c600adc4658f97969fd0b98458e946b5
+      size: 3269529
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: b395e0f48bd23f8d59c1fab85538450b
+      size: 3270099
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: ef21952d9e6037a2e88ef5ecc1f8d7ab
+      size: 20926549
+    - path: data/processed/val.parquet
+      hash: md5
+      md5: 6523dc4bfdc0c58e2181040bd49c58a2
+      size: 3272997
+  baselines:
+    cmd: python src/baselines.py
+    deps:
+    - path: data/processed/items.parquet
+      hash: md5
+      md5: 5ece4aabec9a87568eb82b2762e60d66
+      size: 300085
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: ef21952d9e6037a2e88ef5ecc1f8d7ab
+      size: 20926549
+    - path: data/processed/val.parquet
+      hash: md5
+      md5: 6523dc4bfdc0c58e2181040bd49c58a2
+      size: 3272997
+    - path: src/baselines.py
+      hash: md5
+      md5: 0cf72adac68fc0c8568736b610b3a9fe
+      size: 8601
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/features.py
+      hash: md5
+      md5: 10014e3c0bb97bfcfa4e0867540b86c3
+      size: 2877
+    - path: src/metrics.py
+      hash: md5
+      md5: 77440bc9435b3a88ba001ee4def9c744
+      size: 2047
+    outs:
+    - path: metrics/baselines.json
+      hash: md5
+      md5: aeb77b090c22bfe5dc9ad3671769387e
+      size: 761
+  train_retrieval:
+    cmd: python src/two_tower.py
+    deps:
+    - path: data/processed/items.parquet
+      hash: md5
+      md5: 5ece4aabec9a87568eb82b2762e60d66
+      size: 300085
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: ef21952d9e6037a2e88ef5ecc1f8d7ab
+      size: 20926549
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/features.py
+      hash: md5
+      md5: 10014e3c0bb97bfcfa4e0867540b86c3
+      size: 2877
+    - path: src/two_tower.py
+      hash: md5
+      md5: 64e92dd9313737c797d19a07f8c9d4c3
+      size: 6628
+    params:
+      params.yaml:
+        retrieval.batch_size: 256
+        retrieval.embedding_dim: 64
+        retrieval.epochs: 5
+        retrieval.lr: 0.001
+        retrieval.max_history_len: 50
+    outs:
+    - path: models/item_embeddings.npy
+      hash: md5
+      md5: a46c83209800dce389bfaf10bd3ca2ac
+      size: 2642560
+    - path: models/item_id_map.json
+      hash: md5
+      md5: a4d44a0e7bf7397b68b11762cfd3af25
+      size: 66791
+    - path: models/two_tower.pt
+      hash: md5
+      md5: 163ad5441427ca7b75fdecd2394086de
+      size: 5329506
+  build_index:
+    cmd: python src/build_index.py
+    deps:
+    - path: models/item_embeddings.npy
+      hash: md5
+      md5: a46c83209800dce389bfaf10bd3ca2ac
+      size: 2642560
+    - path: src/build_index.py
+      hash: md5
+      md5: 9498e27279aa848c60533846bbfed947
+      size: 1064
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    outs:
+    - path: models/faiss.index
+      hash: md5
+      md5: ddf880518046b25b1e72ff3d49e309be
+      size: 2642477
+  train_ranker:
+    cmd: python src/ranker.py
+    deps:
+    - path: data/processed/items.parquet
+      hash: md5
+      md5: 5ece4aabec9a87568eb82b2762e60d66
+      size: 300085
+    - path: data/processed/ranker.parquet
+      hash: md5
+      md5: c600adc4658f97969fd0b98458e946b5
+      size: 3269529
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: ef21952d9e6037a2e88ef5ecc1f8d7ab
+      size: 20926549
+    - path: models/faiss.index
+      hash: md5
+      md5: ddf880518046b25b1e72ff3d49e309be
+      size: 2642477
+    - path: models/item_id_map.json
+      hash: md5
+      md5: a4d44a0e7bf7397b68b11762cfd3af25
+      size: 66791
+    - path: models/two_tower.pt
+      hash: md5
+      md5: 163ad5441427ca7b75fdecd2394086de
+      size: 5329506
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/features.py
+      hash: md5
+      md5: 10014e3c0bb97bfcfa4e0867540b86c3
+      size: 2877
+    - path: src/ranker.py
+      hash: md5
+      md5: 4604ff0336ed121a6e90f072b71f4d82
+      size: 6865
+    - path: src/two_tower.py
+      hash: md5
+      md5: 64e92dd9313737c797d19a07f8c9d4c3
+      size: 6628
+    params:
+      params.yaml:
+        ranker.learning_rate: 0.05
+        ranker.n_estimators: 100
+        ranker.num_leaves: 31
+    outs:
+    - path: models/ranker.txt
+      hash: md5
+      md5: 98ccc2d3a8c9b34fe406aa53218a82ec
+      size: 353459
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/processed/items.parquet
+      hash: md5
+      md5: 5ece4aabec9a87568eb82b2762e60d66
+      size: 300085
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: b395e0f48bd23f8d59c1fab85538450b
+      size: 3270099
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: ef21952d9e6037a2e88ef5ecc1f8d7ab
+      size: 20926549
+    - path: data/processed/val.parquet
+      hash: md5
+      md5: 6523dc4bfdc0c58e2181040bd49c58a2
+      size: 3272997
+    - path: metrics/baselines.json
+      hash: md5
+      md5: aeb77b090c22bfe5dc9ad3671769387e
+      size: 761
+    - path: models/faiss.index
+      hash: md5
+      md5: ddf880518046b25b1e72ff3d49e309be
+      size: 2642477
+    - path: models/item_id_map.json
+      hash: md5
+      md5: a4d44a0e7bf7397b68b11762cfd3af25
+      size: 66791
+    - path: models/ranker.txt
+      hash: md5
+      md5: 98ccc2d3a8c9b34fe406aa53218a82ec
+      size: 353459
+    - path: models/two_tower.pt
+      hash: md5
+      md5: 163ad5441427ca7b75fdecd2394086de
+      size: 5329506
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/evaluate.py
+      hash: md5
+      md5: 26f6e0d92c55faec8c093075123d8c8f
+      size: 12013
+    - path: src/features.py
+      hash: md5
+      md5: 10014e3c0bb97bfcfa4e0867540b86c3
+      size: 2877
+    - path: src/metrics.py
+      hash: md5
+      md5: 77440bc9435b3a88ba001ee4def9c744
+      size: 2047
+    - path: src/two_tower.py
+      hash: md5
+      md5: 64e92dd9313737c797d19a07f8c9d4c3
+      size: 6628
+    params:
+      params.yaml:
+        evaluate.latency_samples: 500
+        evaluate.recall_k: 50
+        evaluate.top_k: 10
+    outs:
+    - path: metrics/results.json
+      hash: md5
+      md5: 24235b6f1d09cc0745800d814d0541d3
+      size: 2071
+  register:
+    cmd: python src/register.py
+    deps:
+    - path: metrics/results.json
+      hash: md5
+      md5: 24235b6f1d09cc0745800d814d0541d3
+      size: 2071
+    - path: models/faiss.index
+      hash: md5
+      md5: ddf880518046b25b1e72ff3d49e309be
+      size: 2642477
+    - path: models/item_embeddings.npy
+      hash: md5
+      md5: a46c83209800dce389bfaf10bd3ca2ac
+      size: 2642560
+    - path: models/item_id_map.json
+      hash: md5
+      md5: a4d44a0e7bf7397b68b11762cfd3af25
+      size: 66791
+    - path: models/ranker.txt
+      hash: md5
+      md5: 98ccc2d3a8c9b34fe406aa53218a82ec
+      size: 353459
+    - path: models/two_tower.pt
+      hash: md5
+      md5: 163ad5441427ca7b75fdecd2394086de
+      size: 5329506
+    - path: src/config.py
+      hash: md5
+      md5: b49118ae9b61c9af4329cb10d5309c5a
+      size: 1646
+    - path: src/register.py
+      hash: md5
+      md5: d4c9435a86fc192b28cb0aa8355ae4ff
+      size: 4455
+    - path: src/two_tower.py
+      hash: md5
+      md5: 64e92dd9313737c797d19a07f8c9d4c3
+      size: 6628
+    params:
+      params.yaml:
+        project.model_name: shoprank
+        project.version_tag: v0.1.0
