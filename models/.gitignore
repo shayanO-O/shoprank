@@ -1,0 +1,6 @@
+# DVC Tracked Model Artifacts
+/two_tower.pt
+/item_embeddings.npy
+/item_id_map.json
+/faiss.index
+/ranker.txt
