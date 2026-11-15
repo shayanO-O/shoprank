@@ -1,0 +1,147 @@
+# DVC Pipeline Stages
+stages:
+  validate:
+    cmd: python src/validate.py
+    deps:
+      - data/raw/ml-25m.zip
+      - src/validate.py
+      - src/config.py
+    params:
+      - data.raw_path
+    metrics:
+      - metrics/validation.json:
+          cache: false
+
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+      - data/raw/ml-25m.zip
+      - src/preprocess.py
+      - src/config.py
+    params:
+      - data.min_user_ratings
+      - data.min_item_ratings
+      - data.sample_users
+      - data.seed
+    outs:
+      - data/processed/interactions.parquet
+      - data/processed/items.parquet
+
+  split:
+    cmd: python src/split.py
+    deps:
+      - data/processed/interactions.parquet
+      - src/split.py
+      - src/config.py
+    params:
+      - split.train_quantile
+      - split.ranker_quantile
+      - split.val_quantile
+    outs:
+      - data/processed/train.parquet
+      - data/processed/ranker.parquet
+      - data/processed/val.parquet
+      - data/processed/test.parquet
+
+  baselines:
+    cmd: python src/baselines.py
+    deps:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/processed/items.parquet
+      - src/baselines.py
+      - src/features.py
+      - src/metrics.py
+      - src/config.py
+    metrics:
+      - metrics/baselines.json:
+          cache: false
+
+  train_retrieval:
+    cmd: python src/two_tower.py
+    deps:
+      - data/processed/train.parquet
+      - data/processed/items.parquet
+      - src/two_tower.py
+      - src/features.py
+      - src/config.py
+    params:
+      - retrieval.embedding_dim
+      - retrieval.max_history_len
+      - retrieval.batch_size
+      - retrieval.lr
+      - retrieval.epochs
+    outs:
+      - models/two_tower.pt
+      - models/item_embeddings.npy
+      - models/item_id_map.json
+
+  build_index:
+    cmd: python src/build_index.py
+    deps:
+      - models/item_embeddings.npy
+      - src/build_index.py
+      - src/config.py
+    outs:
+      - models/faiss.index
+
+  train_ranker:
+    cmd: python src/ranker.py
+    deps:
+      - data/processed/train.parquet
+      - data/processed/ranker.parquet
+      - data/processed/items.parquet
+      - models/two_tower.pt
+      - models/faiss.index
+      - models/item_id_map.json
+      - src/ranker.py
+      - src/two_tower.py
+      - src/features.py
+      - src/config.py
+    params:
+      - ranker.learning_rate
+      - ranker.n_estimators
+      - ranker.num_leaves
+    outs:
+      - models/ranker.txt
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/processed/test.parquet
+      - data/processed/items.parquet
+      - models/two_tower.pt
+      - models/faiss.index
+      - models/ranker.txt
+      - models/item_id_map.json
+      - metrics/baselines.json
+      - src/evaluate.py
+      - src/two_tower.py
+      - src/features.py
+      - src/metrics.py
+      - src/config.py
+    params:
+      - evaluate.top_k
+      - evaluate.recall_k
+      - evaluate.latency_samples
+    metrics:
+      - metrics/results.json:
+          cache: false
+
+  register:
+    cmd: python src/register.py
+    deps:
+      - models/two_tower.pt
+      - models/item_embeddings.npy
+      - models/item_id_map.json
+      - models/faiss.index
+      - models/ranker.txt
+      - metrics/results.json
+      - src/register.py
+      - src/two_tower.py
+      - src/config.py
+    params:
+      - project.model_name
+      - project.version_tag
