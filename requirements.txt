@@ -1,0 +1,18 @@
+# Required Python Packages
+requests
+dagshub
+pandas
+numpy
+pyarrow
+scipy
+scikit-learn
+torch
+faiss-cpu
+lightgbm
+mlflow
+dvc
+pyyaml
+python-dotenv
+pytest
+reportlab
+nbformat

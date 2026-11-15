@@ -1,0 +1,47 @@
+# Project Configuration
+project:
+  repo_name: shoprank
+  dagshub_user: shayanO-O
+  experiment_name: shoprank-phase1
+  model_name: shoprank
+  version_tag: v0.1.0
+
+# Dataset Settings
+data:
+  raw_path: data/raw/ml-25m.zip
+  processed_dir: data/processed
+  min_user_ratings: 20
+  min_item_ratings: 20
+  sample_users: 30000
+  seed: 42
+  smoke_max_rows: 500000
+
+# Time Split Quantiles
+split:
+  train_quantile: 0.70
+  ranker_quantile: 0.80
+  val_quantile: 0.90
+
+# Two Tower Retrieval Model Settings
+retrieval:
+  embedding_dim: 64
+  max_history_len: 50
+  batch_size: 256
+  lr: 0.001
+  epochs: 5
+  smoke_epochs: 1
+  smoke_embedding_dim: 16
+  top_k_candidates: 200
+
+# LightGBM LambdaRank Settings
+ranker:
+  learning_rate: 0.05
+  n_estimators: 100
+  num_leaves: 31
+  smoke_n_estimators: 10
+
+# Evaluation Settings
+evaluate:
+  top_k: 10
+  recall_k: 50
+  latency_samples: 500
