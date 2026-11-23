@@ -101,6 +101,7 @@ class OnlineFeatureStore:
         Point-in-time user interaction history.
         Strictly guarantees: timestamp <= as_of (prevents future leakage).
         """
+        redis_items = []
         if self._is_redis_active and self.redis_client:
             try:
                 u_key = f"user:{user_id}:history"
@@ -108,17 +109,20 @@ class OnlineFeatureStore:
                 # Get items up to max_score in reverse order
                 items = self.redis_client.zrevrangebyscore(u_key, max_score, "-inf", start=0, num=max_len)
                 if items:
-                    # Reverse to return chronological order
-                    return [int(m) for m in reversed(items)]
+                    redis_items = [int(m) for m in reversed(items)]
             except Exception as e:
                 logger.warning(f"Redis read error: {e}")
 
-        # In-memory fallback
+        # In-memory baseline / fallback
         raw_hist = self._user_interactions.get(user_id, [])
         if as_of is not None:
             filtered = [m for m, ts in raw_hist if ts <= as_of]
         else:
             filtered = [m for m, _ in raw_hist]
+
+        if redis_items:
+            combined = filtered + [m for m in redis_items if m not in filtered]
+            return combined[-max_len:]
             
         return filtered[-max_len:]
 
@@ -126,20 +130,23 @@ class OnlineFeatureStore:
         """
         Set of all item IDs interacted with by the user up to as_of.
         """
+        seen: Set[int] = set()
         if self._is_redis_active and self.redis_client:
             try:
                 u_key = f"user:{user_id}:history"
                 max_score = as_of if as_of is not None else "+inf"
                 items = self.redis_client.zrangebyscore(u_key, "-inf", max_score)
                 if items:
-                    return {int(m) for m in items}
+                    seen.update(int(m) for m in items)
             except Exception as e:
                 logger.warning(f"Redis read error: {e}")
 
         raw_hist = self._user_interactions.get(user_id, [])
         if as_of is not None:
-            return {m for m, ts in raw_hist if ts <= as_of}
-        return {m for m, _ in raw_hist}
+            seen.update(m for m, ts in raw_hist if ts <= as_of)
+        else:
+            seen.update(m for m, _ in raw_hist)
+        return seen
 
     def get_user_features(self, user_id: int, as_of: Optional[float] = None, max_len: int = 50, num_genres: int = 20) -> Dict[str, Any]:
         """

@@ -1,10 +1,13 @@
 import json
 import logging
 import os
+import sys
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
+# Support direct script execution and module execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from dotenv import load_dotenv
 import faiss
@@ -49,6 +52,11 @@ class RecommendResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     model_version: str
+
+class FeedbackRequest(BaseModel):
+    user_id: int = Field(..., description="Target user ID")
+    item_id: int = Field(..., description="Interacted/clicked item ID")
+    timestamp: Optional[float] = Field(None, description="Timestamp of the interaction")
 
 class VersionResponse(BaseModel):
     model_version: str
@@ -96,6 +104,13 @@ class ShopRankServingEngine:
                 if curr_hash != expected_hash:
                     raise ValueError(f"Checksum mismatch for {art_name}: expected {expected_hash}, got {curr_hash}")
             logger.info("Manifest checksums verified successfully.")
+            if not self.model_version or self.model_version == "v0.1.0":
+                if "MODEL_VERSION" in os.environ and os.environ["MODEL_VERSION"].strip():
+                    self.model_version = os.environ["MODEL_VERSION"].strip()
+                elif self.manifest.get("version_tag"):
+                    self.model_version = self.manifest["version_tag"]
+                else:
+                    self.model_version = "v0.2.0"
         else:
             logger.warning(f"No manifest.json found at {manifest_path}. Proceeding with unverified load.")
             self.manifest = {
@@ -128,22 +143,39 @@ class ShopRankServingEngine:
         ranker_path = self.model_dir / "ranker.txt"
         self.ranker = lgb.Booster(model_file=str(ranker_path))
 
-        # 6. Initialize Feature Store
+        # 6. Initialize Feature Store & Seed Datasets
         self.feature_store = OnlineFeatureStore(redis_url=self.redis_url)
         
-        # Load availability and genres if available
+        # Load processed datasets if available to seed user histories, item stats, and availability
+        train_path = Path("data/processed/train.parquet")
+        items_path = Path("data/processed/items.parquet")
         avail_path = Path("data/processed/availability.parquet")
-        if avail_path.exists():
-            try:
-                import pandas as pd
-                df_avail = pd.read_parquet(avail_path)
+
+        try:
+            import pandas as pd
+            df_train = pd.read_parquet(train_path) if train_path.exists() else None
+            df_items = pd.read_parquet(items_path) if items_path.exists() else None
+            df_avail = pd.read_parquet(avail_path) if avail_path.exists() else None
+
+            self.feature_store.seed_from_data(
+                train_df=df_train,
+                items_df=df_items,
+                availability_df=df_avail
+            )
+
+            if df_avail is not None:
                 unavail = df_avail[df_avail["is_available"] == False]["movieId"]
                 self.unavailable_items = set(unavail.astype(int).tolist())
-            except Exception as e:
-                logger.warning(f"Could not load availability: {e}")
 
-        # Popular fallback items (top 50)
-        self.popular_items = self.all_items[:50]
+            if df_train is not None and not df_train.empty:
+                top_pop = df_train["movieId"].value_counts().head(100).index.tolist()
+                self.popular_items = [int(m) for m in top_pop]
+            else:
+                self.popular_items = self.all_items[:50]
+        except Exception as e:
+            logger.warning(f"Feature store seeding skipped or failed ({e}). Using unseeded fallback.")
+            self.popular_items = self.all_items[:50]
+
         self.is_ready = True
         logger.info(f"ShopRank Serving Engine initialized. Model version: {self.model_version}")
 
@@ -343,6 +375,20 @@ def create_app(engine: Optional[ShopRankServingEngine] = None) -> FastAPI:
             model_version=app_engine.model_version,
             latency_ms=latency_ms
         )
+
+    @app.post("/feedback")
+    def feedback(payload: FeedbackRequest):
+        if not app_engine.is_ready or not app_engine.feature_store:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Engine not ready"
+            )
+        app_engine.feature_store.record_interaction(
+            user_id=payload.user_id,
+            item_id=payload.item_id,
+            timestamp=payload.timestamp
+        )
+        return {"status": "recorded", "user_id": payload.user_id, "item_id": payload.item_id}
 
     @app.get("/metrics")
     def metrics():

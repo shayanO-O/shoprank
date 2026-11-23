@@ -3,10 +3,14 @@ import json
 import logging
 import math
 import os
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
+# Support direct script execution and module execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import httpx
 import numpy as np
@@ -218,10 +222,20 @@ class ReplaySimulator:
             for mid in clicked:
                 clicked_item_counts[mid] += 1
 
-            # 3. Active Materialization: update feature store
-            if self.feature_store and clicked:
+            # 3. Active Materialization: update feature store and remote endpoint
+            if clicked:
                 for mid in clicked:
-                    self.feature_store.record_interaction(user_id=uid, item_id=mid, timestamp=ts)
+                    if self.feature_store:
+                        self.feature_store.record_interaction(user_id=uid, item_id=mid, timestamp=ts)
+                    if self.http_client and self.endpoint_url:
+                        base_url = self.endpoint_url.rsplit("/", 1)[0]
+                        try:
+                            self.http_client.post(
+                                f"{base_url}/feedback",
+                                json={"user_id": uid, "item_id": mid, "timestamp": ts}
+                            )
+                        except Exception:
+                            pass
 
             events.append({
                 "timestamp": ts,
@@ -271,9 +285,11 @@ if __name__ == "__main__":
         exit(1)
 
     click_m = ClickModel(drift_mode=args.drift_mode)
+    fs = OnlineFeatureStore()
     sim = ReplaySimulator(
         interactions_df=df_data,
         endpoint_url=args.endpoint,
+        feature_store=fs,
         click_model=click_m
     )
     res = sim.run_simulation(n_requests=args.n_requests, top_k=args.top_k, output_log_path=args.output)

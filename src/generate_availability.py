@@ -1,8 +1,12 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
+
+# Support direct script execution and module execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 def generate_availability(items_path=None, output_path=None, unavailable_ratio=0.02, seed=42):
     """

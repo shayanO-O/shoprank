@@ -3,12 +3,17 @@ import json
 import logging
 import os
 import queue
+import sys
 import threading
 import time
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Support direct script execution and module execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from dotenv import load_dotenv
 import httpx
@@ -289,6 +294,22 @@ def create_router_app(router: Optional[TrafficRouter] = None) -> FastAPI:
                 logger.warning("Shadow queue full. Dropped shadow inference request.")
 
         return resp.json()
+
+    @app.post("/feedback")
+    async def forward_feedback(payload: Dict[str, Any]):
+        champ_url = f"{r.config.champion_url.rstrip('/')}/feedback"
+        try:
+            await r.http_client.post(champ_url, json=payload)
+        except Exception as e:
+            logger.warning(f"Failed to forward feedback to champion: {e}")
+
+        if r.config.challenger_url:
+            chal_url = f"{r.config.challenger_url.rstrip('/')}/feedback"
+            try:
+                await r.http_client.post(chal_url, json=payload)
+            except Exception:
+                pass
+        return {"status": "forwarded", "payload": payload}
 
     @app.get("/metrics")
     def metrics():

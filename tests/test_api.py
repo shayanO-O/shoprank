@@ -133,6 +133,18 @@ def test_metrics_endpoint(client):
     assert "shoprank_recommendation_requests_total" in content
     assert "shoprank_recommendation_latency_seconds" in content
 
+def test_feedback_endpoint(client):
+    payload = {
+        "user_id": 101,
+        "item_id": 1005,
+        "timestamp": 1700000001.0
+    }
+    res = client.post("/feedback", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "recorded"
+    assert data["user_id"] == 101
+
 def test_tampered_manifest_checksum_rejection(tmp_path):
     # Corrupt an artifact and check that load_bundle raises ValueError
     bad_dir = tmp_path / "bad_bundle"
