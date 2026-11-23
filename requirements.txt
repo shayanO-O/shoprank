@@ -16,3 +16,8 @@ python-dotenv
 pytest
 reportlab
 nbformat
+redis
+fastapi
+uvicorn
+prometheus-client
+httpx
