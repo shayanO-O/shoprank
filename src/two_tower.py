@@ -43,18 +43,26 @@ class RetrievalDataset(Dataset):
 
 # Item Tower Neural Network
 class ItemTower(nn.Module):
-    def __init__(self, num_items, num_genres, emb_dim):
+    def __init__(self, num_items, num_genres, emb_dim, id_dropout=0.1):
         super().__init__()
         self.item_emb = nn.Embedding(num_items, emb_dim)
         self.genre_proj = nn.Linear(num_genres, emb_dim)
         self.year_proj = nn.Linear(1, emb_dim)
         self.fc = nn.Linear(emb_dim, emb_dim)
+        self.id_dropout = id_dropout
         
-    def forward(self, item_idx, genre_vec, year_val):
-        id_vec = self.item_emb(item_idx)
+    def forward(self, item_idx=None, genre_vec=None, year_val=None):
         g_vec = self.genre_proj(genre_vec)
         y_vec = self.year_proj(year_val)
-        out = self.fc(id_vec + g_vec + y_vec)
+        if item_idx is not None:
+            id_vec = self.item_emb(item_idx)
+            if self.training and self.id_dropout > 0.0:
+                mask = (torch.rand(id_vec.shape[0], 1, device=id_vec.device) > self.id_dropout).float()
+                id_vec = id_vec * mask
+            out = self.fc(id_vec + g_vec + y_vec)
+        else:
+            # Metadata-only path for new / cold-start items
+            out = self.fc(g_vec + y_vec)
         return F.normalize(out, p=2, dim=-1)
 
 # User Tower Neural Network

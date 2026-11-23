@@ -1,0 +1,5 @@
+outs:
+- md5: 7af71d5fe5ede655b133694e2d2865e9
+  size: 62321
+  hash: md5
+  path: availability.parquet

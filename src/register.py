@@ -1,4 +1,6 @@
 import argparse
+import datetime
+import hashlib
 import json
 import subprocess
 import sys
@@ -14,6 +16,14 @@ import mlflow.pyfunc
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.config import load_params, setup_mlflow, get_paths
 from src.two_tower import UserTower
+
+# Calculate SHA256 Checksum For File
+def calculate_file_sha256(filepath):
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 # Read Git Commit Hash
 def get_git_commit():
@@ -35,6 +45,20 @@ def get_data_version():
 # Custom MLflow PyFunc Wrapper
 class ShopRankWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
+        manifest_path = context.artifacts.get("manifest")
+        if manifest_path and Path(manifest_path).exists():
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            for artifact_name, expected_sha in manifest.get("artifacts", {}).items():
+                target_path = context.artifacts.get(artifact_name)
+                if target_path and Path(target_path).exists():
+                    actual_sha = calculate_file_sha256(target_path)
+                    if actual_sha != expected_sha:
+                        raise RuntimeError(
+                            f"VersionMismatchError: SHA256 mismatch for {artifact_name} "
+                            f"(expected {expected_sha}, got {actual_sha})"
+                        )
+
         with open(context.artifacts["item_id_map"], "r", encoding="utf-8") as f:
             self.all_items = json.load(f)
         self.item_to_idx = {mid: i for i, mid in enumerate(self.all_items)}
@@ -59,18 +83,30 @@ if __name__ == "__main__":
     params = load_params()
     setup_mlflow(params, smoke=args.smoke)
     paths = get_paths(params, smoke=args.smoke)
+    paths["models"].mkdir(parents=True, exist_ok=True)
     
-    # Bundle Required Artifacts
-    artifacts = {
-        "two_tower": str(paths["models"] / "two_tower.pt"),
-        "item_embeddings": str(paths["models"] / "item_embeddings.npy"),
-        "item_id_map": str(paths["models"] / "item_id_map.json"),
-        "faiss_index": str(paths["models"] / "faiss.index"),
-        "ranker": str(paths["models"] / "ranker.txt")
+    # Compute Artifact Checksums & Bundle Manifest
+    artifact_files = {
+        "two_tower": paths["models"] / "two_tower.pt",
+        "item_embeddings": paths["models"] / "item_embeddings.npy",
+        "item_id_map": paths["models"] / "item_id_map.json",
+        "faiss_index": paths["models"] / "faiss.index",
+        "ranker": paths["models"] / "ranker.txt"
     }
+    
+    artifact_hashes = {}
+    for name, p in artifact_files.items():
+        if p.exists():
+            artifact_hashes[name] = calculate_file_sha256(p)
+        else:
+            artifact_hashes[name] = "missing"
+            
+    concat_hashes = "".join([artifact_hashes[k] for k in sorted(artifact_hashes.keys())])
+    bundle_hash = hashlib.sha256(concat_hashes.encode("utf-8")).hexdigest()
     
     git_commit = get_git_commit()
     data_version = get_data_version()
+    version_tag = params["project"]["version_tag"]
     
     res_file = paths["metrics"] / "results.json"
     ndcg_val = "0.0"
@@ -79,7 +115,35 @@ if __name__ == "__main__":
             res_data = json.load(f)
             ndcg_val = str(res_data.get("retrieval_plus_ranker", {}).get("test", {}).get("ndcg_at_10", 0.0))
             
-    model_name = "shoprank-smoke" if args.smoke else params["project"]["model_name"]
+    manifest_data = {
+        "bundle_name": "shoprank-bundle",
+        "bundle_hash": bundle_hash,
+        "version_tag": version_tag,
+        "git_commit": git_commit,
+        "dvc_data_version": data_version,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "artifacts": artifact_hashes,
+        "metrics": {
+            "ndcg_at_10": float(ndcg_val)
+        }
+    }
+    
+    manifest_path = paths["models"] / "manifest.json"
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest_data, f, indent=2)
+    print(f"Generated bundle manifest: {manifest_path} (bundle_hash: {bundle_hash[:12]}...)")
+
+    # Bundle Required Artifacts
+    artifacts = {
+        "manifest": str(manifest_path),
+        "two_tower": str(artifact_files["two_tower"]),
+        "item_embeddings": str(artifact_files["item_embeddings"]),
+        "item_id_map": str(artifact_files["item_id_map"]),
+        "faiss_index": str(artifact_files["faiss_index"]),
+        "ranker": str(artifact_files["ranker"])
+    }
+    
+    model_name = "shoprank-bundle-smoke" if args.smoke else "shoprank-bundle"
     version_tag = params["project"]["version_tag"]
     
     # Log Model In MLflow Run

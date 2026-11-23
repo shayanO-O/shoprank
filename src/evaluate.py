@@ -88,13 +88,42 @@ def rank_candidates(candidates, cand_scores, hist, ranker, item_stats, item_genr
     ranked_indices = np.argsort(-pred_scores)
     return [candidates[i] for i in ranked_indices]
 
+# Apply Intra-List Diversity Rule (Cap at max_per_genre items per dominant genre)
+def apply_diversity_rule(ranked_items, item_genre_dict, max_per_genre=3, top_k=10):
+    if not ranked_items:
+        return []
+    genre_counts = defaultdict(int)
+    selected = []
+    overflow = []
+    
+    for mid in ranked_items:
+        g_vec = item_genre_dict.get(mid)
+        dom_genre = int(np.argmax(g_vec)) if g_vec is not None and np.any(g_vec > 0) else -1
+        if dom_genre >= 0 and genre_counts[dom_genre] >= max_per_genre:
+            overflow.append(mid)
+        else:
+            selected.append(mid)
+            if dom_genre >= 0:
+                genre_counts[dom_genre] += 1
+        if len(selected) == top_k:
+            break
+            
+    if len(selected) < top_k and overflow:
+        needed = top_k - len(selected)
+        selected.extend(overflow[:needed])
+        
+    return selected
+
 # Run Full Evaluation On Selected Users
-def evaluate_recs(user_list, ground_truth, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, num_genres, max_len=50):
+def evaluate_recs(user_list, ground_truth, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, num_genres, max_len=50, max_per_genre=3):
     retrieval_recs_all = []
     ranked_recs_all = []
+    rule_recs_all = []
     
     ret_ndcg, ret_recall = [], []
     rank_ndcg, rank_recall = [], []
+    rule_ndcg, rule_recall = [], []
+    per_user_ndcg = {}
     
     for uid in user_list:
         actual = ground_truth.get(uid, [])
@@ -110,8 +139,20 @@ def evaluate_recs(user_list, ground_truth, user_histories, seen_items, user_towe
         
         final_ranked = rank_candidates(cands, scores, hist, ranker, item_stats, item_genre_dict, num_genres)
         ranked_recs_all.append(final_ranked)
-        rank_ndcg.append(ndcg_at_k(actual, final_ranked, k=10))
+        raw_score = ndcg_at_k(actual, final_ranked, k=10)
+        rank_ndcg.append(raw_score)
         rank_recall.append(recall_at_k(actual, final_ranked, k=50))
+        
+        diversified = apply_diversity_rule(final_ranked, item_genre_dict, max_per_genre=max_per_genre, top_k=10)
+        rule_recs_all.append(diversified)
+        rule_score = ndcg_at_k(actual, diversified, k=10)
+        rule_ndcg.append(rule_score)
+        rule_recall.append(recall_at_k(actual, diversified, k=50))
+        
+        per_user_ndcg[str(uid)] = {
+            "raw": float(raw_score),
+            "with_rules": float(rule_score)
+        }
         
     ret_metrics = {
         "ndcg_at_10": float(np.mean(ret_ndcg)) if ret_ndcg else 0.0,
@@ -122,12 +163,15 @@ def evaluate_recs(user_list, ground_truth, user_histories, seen_items, user_towe
     
     rank_metrics = {
         "ndcg_at_10": float(np.mean(rank_ndcg)) if rank_ndcg else 0.0,
+        "ndcg_at_10_raw": float(np.mean(rank_ndcg)) if rank_ndcg else 0.0,
+        "ndcg_at_10_with_rules": float(np.mean(rule_ndcg)) if rule_ndcg else 0.0,
         "recall_at_50": float(np.mean(rank_recall)) if rank_recall else 0.0,
         "catalog_coverage": catalog_coverage(ranked_recs_all, len(all_items)),
-        "diversity": intra_list_diversity(ranked_recs_all, item_genre_dict)
+        "diversity": intra_list_diversity(ranked_recs_all, item_genre_dict),
+        "diversity_with_rules": intra_list_diversity(rule_recs_all, item_genre_dict)
     }
     
-    return ret_metrics, rank_metrics
+    return ret_metrics, rank_metrics, per_user_ndcg
 
 if __name__ == "__main__":
     import mlflow
@@ -197,11 +241,16 @@ if __name__ == "__main__":
     test_cold_users = [u for u in test_users if test_df[test_df["userId"] == u]["is_cold"].iloc[0] == 1]
     
     # Compute Validation And Test Metrics
-    val_ret_metrics, val_rank_metrics = evaluate_recs(val_users, val_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
-    test_ret_metrics, test_rank_metrics = evaluate_recs(test_users, test_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
+    val_ret_metrics, val_rank_metrics, val_user_ndcg = evaluate_recs(val_users, val_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
+    test_ret_metrics, test_rank_metrics, test_user_ndcg = evaluate_recs(test_users, test_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
     
-    _, val_cold_rank_metrics = evaluate_recs(val_cold_users, val_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
-    _, test_cold_rank_metrics = evaluate_recs(test_cold_users, test_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
+    _, val_cold_rank_metrics, _ = evaluate_recs(val_cold_users, val_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
+    _, test_cold_rank_metrics, _ = evaluate_recs(test_cold_users, test_gt, user_histories, seen_items, user_tower, index, ranker, all_items, item_to_idx, pop_ranked, item_stats, item_genre_dict, len(g_map), max_len=max_len)
+    
+    # Save Per-User NDCG Breakdown
+    per_user_file = paths["metrics"] / "per_user_ndcg.json"
+    with open(per_user_file, "w", encoding="utf-8") as f:
+        json.dump(test_user_ndcg, f, indent=2)
     
     # Benchmark Pipeline CPU Request Latency
     latency_users = test_users[:params["evaluate"]["latency_samples"]]

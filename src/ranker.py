@@ -121,18 +121,25 @@ if __name__ == "__main__":
             
             for mid in candidates:
                 retrieval_score = cand_scores.get(mid, 0.0)
-                stats = item_stats.get(mid, {"popularity": 0.0, "recent_popularity": 0.0, "mean_rating": 3.0, "item_age": 20.0})
+                stats = item_stats.get(mid, {"popularity": np.nan, "recent_popularity": np.nan, "mean_rating": 3.0, "item_age": 20.0})
                 
                 mid_g = item_genre_dict.get(mid, np.zeros(len(g_map), dtype=np.float32))
                 m_g_norm = np.linalg.norm(mid_g)
                 overlap = float(np.dot(user_genre_vec, mid_g) / (u_g_norm * m_g_norm)) if (u_g_norm > 0 and m_g_norm > 0) else 0.0
                 
+                # 10% popularity dropout during training so zero-history items are not buried
+                pop_val = stats.get("popularity", np.nan)
+                rec_pop_val = stats.get("recent_popularity", np.nan)
+                if np.random.rand() < 0.10:
+                    pop_val = np.nan
+                    rec_pop_val = np.nan
+                
                 feat = [
                     retrieval_score,
-                    stats["popularity"],
-                    stats["recent_popularity"],
-                    stats["item_age"],
-                    stats["mean_rating"],
+                    pop_val,
+                    rec_pop_val,
+                    stats.get("item_age", 20.0),
+                    stats.get("mean_rating", 3.0),
                     float(hist_len),
                     overlap
                 ]
