@@ -6,10 +6,13 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from dotenv import load_dotenv
 import httpx
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

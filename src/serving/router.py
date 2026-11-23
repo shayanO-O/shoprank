@@ -10,10 +10,13 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 import httpx
 import numpy as np
 from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 from src.serving.app import RecommendRequest, RecommendResponse
 from src.serving.metrics_exporter import (

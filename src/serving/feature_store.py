@@ -6,8 +6,11 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from dotenv import load_dotenv
 import numpy as np
 import pandas as pd
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

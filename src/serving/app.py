@@ -6,12 +6,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from dotenv import load_dotenv
 import faiss
 import lightgbm as lgb
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 from src.serving.business_rules import apply_business_rules
 from src.serving.feature_store import OnlineFeatureStore
