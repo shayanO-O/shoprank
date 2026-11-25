@@ -79,70 +79,70 @@ with DAG(
     # 1. Validation & Data Quality Checks
     validate = BashOperator(
         task_id="validate_raw_data",
-        bash_command="python src/validate.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/validate.py",
         dag=dag
     )
 
     # 2. Preprocessing & Filtering
     preprocess = BashOperator(
         task_id="preprocess_interactions",
-        bash_command="python src/preprocess.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/preprocess.py",
         dag=dag
     )
 
     # 3. Temporal Stratified Splitting
     split = BashOperator(
         task_id="split_dataset",
-        bash_command="python src/split.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/split.py",
         dag=dag
     )
 
     # 4. Baselines Evaluation
     baselines = BashOperator(
         task_id="evaluate_baselines",
-        bash_command="python src/baselines.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/baselines.py",
         dag=dag
     )
 
     # 5. Stage 1 Retrieval Training
     train_retrieval = BashOperator(
         task_id="train_two_tower_retrieval",
-        bash_command="python src/two_tower.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/two_tower.py",
         dag=dag
     )
 
     # 6. FAISS Index Construction
     build_index = BashOperator(
         task_id="build_faiss_index",
-        bash_command="python src/build_index.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/build_index.py",
         dag=dag
     )
 
     # 7. Stage 2 LightGBM LambdaRank Training
     train_ranker = BashOperator(
         task_id="train_lambdarank_ranker",
-        bash_command="python src/ranker.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/ranker.py",
         dag=dag
     )
 
     # 8. Evaluation & Latency Benchmarking
     evaluate = BashOperator(
         task_id="evaluate_system",
-        bash_command="python src/evaluate.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/evaluate.py",
         dag=dag
     )
 
     # 9. Atomic Model Registration with Checksum Manifest
     register = BashOperator(
         task_id="register_model_bundle",
-        bash_command="python src/register.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/register.py",
         dag=dag
     )
 
     # 10. Automated Quality Gate & Promotion
     quality_gate = BashOperator(
         task_id="evaluate_quality_gate",
-        bash_command="python src/pipeline/quality_gate.py --challenger-results metrics/results.json",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/pipeline/quality_gate.py --challenger-results metrics/results.json",
         dag=dag
     )
 

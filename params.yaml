@@ -2,9 +2,9 @@
 project:
   repo_name: shoprank
   dagshub_user: shayanO-O
-  experiment_name: shoprank-phase1
+  experiment_name: shoprank-phase2
   model_name: shoprank
-  version_tag: v0.1.0
+  version_tag: v0.2.0
 
 # Dataset Settings
 data:

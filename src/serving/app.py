@@ -96,8 +96,16 @@ class ShopRankServingEngine:
             
             # Verify file integrity
             expected_artifacts = self.manifest.get("artifacts", {})
+            name_mapping = {
+                "two_tower": "two_tower.pt",
+                "item_embeddings": "item_embeddings.npy",
+                "item_id_map": "item_id_map.json",
+                "faiss_index": "faiss.index",
+                "ranker": "ranker.txt"
+            }
             for art_name, expected_hash in expected_artifacts.items():
-                art_file = self.model_dir / art_name
+                target_fname = name_mapping.get(art_name, art_name)
+                art_file = self.model_dir / target_fname
                 if not art_file.exists():
                     raise FileNotFoundError(f"Missing artifact: {art_file}")
                 curr_hash = calculate_file_sha256(art_file)

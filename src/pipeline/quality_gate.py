@@ -2,8 +2,12 @@ import argparse
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+# Support direct script execution and module execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import numpy as np
 

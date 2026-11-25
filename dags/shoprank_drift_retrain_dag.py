@@ -27,50 +27,57 @@ with DAG(
     # 1. Pull recent interactions and update reference baseline
     sync_data = BashOperator(
         task_id="sync_production_interactions",
-        bash_command="python src/preprocess.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/preprocess.py",
         dag=dag
     )
 
-    # 2. Retrain retrieval
+    # 2. Split dataset temporally
+    split_data = BashOperator(
+        task_id="split_interactions",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/split.py",
+        dag=dag
+    )
+
+    # 3. Retrain retrieval
     train_retrieval = BashOperator(
         task_id="retrain_retrieval",
-        bash_command="python src/two_tower.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/two_tower.py",
         dag=dag
     )
 
-    # 3. Rebuild index
+    # 4. Rebuild index
     build_index = BashOperator(
         task_id="rebuild_index",
-        bash_command="python src/build_index.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/build_index.py",
         dag=dag
     )
 
-    # 4. Retrain ranker
+    # 5. Retrain ranker
     train_ranker = BashOperator(
         task_id="retrain_ranker",
-        bash_command="python src/ranker.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/ranker.py",
         dag=dag
     )
 
-    # 5. Evaluate
+    # 6. Evaluate
     evaluate = BashOperator(
         task_id="evaluate_retrained_model",
-        bash_command="python src/evaluate.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/evaluate.py",
         dag=dag
     )
 
-    # 6. Register bundle
+    # 7. Register bundle
     register = BashOperator(
         task_id="register_bundle",
-        bash_command="python src/register.py",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/register.py",
         dag=dag
     )
 
-    # 7. Quality gate evaluation
+    # 8. Quality gate evaluation
     quality_gate = BashOperator(
         task_id="evaluate_gate",
-        bash_command="python src/pipeline/quality_gate.py --challenger-results metrics/results.json",
+        bash_command="cd /opt/airflow 2>/dev/null || true; python src/pipeline/quality_gate.py --challenger-results metrics/results.json",
         dag=dag
     )
 
-    sync_data >> train_retrieval >> build_index >> train_ranker >> evaluate >> register >> quality_gate
+    sync_data >> split_data >> train_retrieval >> build_index >> train_ranker >> evaluate >> register >> quality_gate

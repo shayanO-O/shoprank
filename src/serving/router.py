@@ -112,6 +112,8 @@ class TrafficRouter:
 
     def start_shadow_worker(self):
         self._stop_event.clear()
+        SHADOW_ERRORS.labels(model_version="challenger-shadow")
+        SHADOW_LATENCY.labels(model_version="challenger-shadow")
         self._shadow_thread = threading.Thread(target=self._shadow_worker_loop, daemon=True)
         self._shadow_thread.start()
         logger.info("Shadow inference worker thread started.")
@@ -211,7 +213,7 @@ def create_router_app(router: Optional[TrafficRouter] = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        r.http_client = httpx.AsyncClient(timeout=0.25)
+        r.http_client = httpx.AsyncClient(timeout=2.0)
         r.start_shadow_worker()
         yield
         r.stop_shadow_worker()

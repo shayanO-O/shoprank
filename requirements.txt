@@ -10,6 +10,7 @@ torch
 faiss-cpu
 lightgbm
 mlflow
+email-validator>=2.0.0
 dvc
 pyyaml
 python-dotenv

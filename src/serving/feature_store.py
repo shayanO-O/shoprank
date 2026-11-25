@@ -12,6 +12,11 @@ import pandas as pd
 
 load_dotenv()
 
+try:
+    from src.serving.metrics_exporter import CACHE_HITS
+except Exception:
+    CACHE_HITS = None
+
 logger = logging.getLogger(__name__)
 
 class OnlineFeatureStore:
@@ -39,6 +44,13 @@ class OnlineFeatureStore:
         # set of unavailable item_ids
         self._unavailable_items: Set[int] = set()
         
+        if CACHE_HITS:
+            try:
+                CACHE_HITS.labels(cache_type="redis")
+                CACHE_HITS.labels(cache_type="memory")
+            except Exception:
+                pass
+
         self._connect_redis()
 
     def _connect_redis(self):
@@ -110,11 +122,15 @@ class OnlineFeatureStore:
                 items = self.redis_client.zrevrangebyscore(u_key, max_score, "-inf", start=0, num=max_len)
                 if items:
                     redis_items = [int(m) for m in reversed(items)]
+                    if CACHE_HITS:
+                        CACHE_HITS.labels(cache_type="redis").inc()
             except Exception as e:
                 logger.warning(f"Redis read error: {e}")
 
         # In-memory baseline / fallback
         raw_hist = self._user_interactions.get(user_id, [])
+        if CACHE_HITS and not redis_items:
+            CACHE_HITS.labels(cache_type="memory").inc()
         if as_of is not None:
             filtered = [m for m, ts in raw_hist if ts <= as_of]
         else:

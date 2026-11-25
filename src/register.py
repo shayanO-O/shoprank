@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any, List
 import faiss
 import lightgbm as lgb
 import numpy as np
@@ -72,7 +73,7 @@ class ShopRankWrapper(mlflow.pyfunc.PythonModel):
         self.user_tower.load_state_dict(u_st)
         self.user_tower.eval()
         
-    def predict(self, context, model_input):
+    def predict(self, context: Any, model_input: List[int]) -> List[List[int]]:
         return [self.all_items[:10]]
 
 if __name__ == "__main__":
@@ -97,9 +98,12 @@ if __name__ == "__main__":
     artifact_hashes = {}
     for name, p in artifact_files.items():
         if p.exists():
-            artifact_hashes[name] = calculate_file_sha256(p)
+            h = calculate_file_sha256(p)
+            artifact_hashes[name] = h
+            artifact_hashes[p.name] = h
         else:
             artifact_hashes[name] = "missing"
+            artifact_hashes[p.name] = "missing"
             
     concat_hashes = "".join([artifact_hashes[k] for k in sorted(artifact_hashes.keys())])
     bundle_hash = hashlib.sha256(concat_hashes.encode("utf-8")).hexdigest()
