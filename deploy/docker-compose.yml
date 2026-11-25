@@ -1,0 +1,159 @@
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: shoprank-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  champion:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: shoprank-champion
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../src:/app/src:ro
+      - ../models:/app/models:ro
+      - ../data:/app/data:ro
+    environment:
+      - MODEL_VERSION=champion
+      - PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      - MODEL_DIR=/app/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["uvicorn", "src.serving.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  challenger:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: shoprank-challenger
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../src:/app/src:ro
+      - ../models:/app/models:ro
+      - ../data:/app/data:ro
+    environment:
+      - MODEL_VERSION=challenger
+      - PORT=8001
+      - REDIS_URL=redis://redis:6379/0
+      - MODEL_DIR=/app/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["uvicorn", "src.serving.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  router:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: shoprank-router
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../src:/app/src:ro
+    environment:
+      - CHAMPION_URL=http://champion:8000
+      - CHALLENGER_URL=http://challenger:8001
+      - CANARY_WEIGHT=10
+      - SHADOW_ENABLED=true
+      - CANARY_SALT=shoprank-canary-2026
+      - MAX_ERROR_RATE=0.01
+      - MAX_P95_LATENCY_MS=30.0
+    depends_on:
+      - champion
+      - challenger
+    restart: unless-stopped
+    command: ["uvicorn", "src.serving.router:router_app", "--host", "0.0.0.0", "--port", "8080"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: shoprank-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - router
+      - champion
+      - challenger
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: shoprank-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboard.json:/var/lib/grafana/dashboards/dashboard.json:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  airflow:
+    build:
+      context: ..
+      dockerfile: deploy/airflow/Dockerfile
+    image: shoprank-airflow:latest
+    container_name: shoprank-airflow
+    ports:
+      - "8085:8080"
+    environment:
+      - PYTHONPATH=/opt/airflow:/home/airflow/.local/lib/python3.11/site-packages
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+    user: "0:0"
+    volumes:
+      - ../dags:/opt/airflow/dags:ro
+      - ../src:/opt/airflow/src:ro
+      - ../data:/opt/airflow/data
+      - ../models:/opt/airflow/models
+      - ../metrics:/opt/airflow/metrics
+      - ../params.yaml:/opt/airflow/params.yaml:ro
+    command:
+      - bash
+      - -c
+      - |
+        airflow db migrate
+        airflow users create -u admin -p admin -f Admin -l User -r Admin -e admin@example.com || airflow users reset-password -u admin -p admin
+        airflow standalone
+    restart: unless-stopped

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoprank-champion
+  namespace: shoprank
+  labels:
+    app: shoprank-champion
+    role: champion
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shoprank-champion
+  template:
+    metadata:
+      labels:
+        app: shoprank-champion
+        role: champion
+    spec:
+      containers:
+        - name: shoprank-serving
+          image: ghcr.io/shayano-o/shoprank:latest
+          command: ["uvicorn", "src.serving.app:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: MODEL_VERSION
+              value: "champion"
+            - name: REDIS_URL
+              value: "redis://shoprank-redis:6379/0"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shoprank-champion
+  namespace: shoprank
+  labels:
+    app: shoprank-champion
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  selector:
+    app: shoprank-champion

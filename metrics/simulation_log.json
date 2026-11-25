@@ -1,0 +1,405 @@
+{
+  "total_requests": 20,
+  "total_impressions": 200,
+  "total_clicks": 2,
+  "overall_ctr": 0.01,
+  "unique_items_recommended": 73,
+  "unique_items_clicked": 2,
+  "drift_mode": "none",
+  "top_clicked_items": [
+    [
+      42725,
+      1
+    ],
+    [
+      69306,
+      1
+    ]
+  ],
+  "events": [
+    {
+      "timestamp": 1514715458.0,
+      "user_id": 29144,
+      "recommendations": [
+        6315,
+        79592,
+        52644,
+        86347,
+        79428,
+        7257,
+        7846,
+        55241,
+        44840,
+        63479
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 371.55093499950453
+    },
+    {
+      "timestamp": 1514715465.0,
+      "user_id": 29144,
+      "recommendations": [
+        250,
+        7193,
+        87485,
+        42013,
+        59126,
+        47640,
+        86347,
+        26471,
+        81537,
+        1887
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 10.678458000256796
+    },
+    {
+      "timestamp": 1514715468.0,
+      "user_id": 29144,
+      "recommendations": [
+        250,
+        7193,
+        87485,
+        42013,
+        59126,
+        47640,
+        86347,
+        26471,
+        81537,
+        1887
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 11.251541000092402
+    },
+    {
+      "timestamp": 1514715478.0,
+      "user_id": 29144,
+      "recommendations": [
+        250,
+        7193,
+        87485,
+        42013,
+        59126,
+        47640,
+        86347,
+        26471,
+        81537,
+        1887
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 11.974832999840146
+    },
+    {
+      "timestamp": 1514715486.0,
+      "user_id": 29144,
+      "recommendations": [
+        250,
+        7193,
+        87485,
+        42013,
+        59126,
+        47640,
+        86347,
+        26471,
+        81537,
+        1887
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 11.48028100033116
+    },
+    {
+      "timestamp": 1514715493.0,
+      "user_id": 29144,
+      "recommendations": [
+        4989,
+        42725,
+        57532,
+        1887,
+        325,
+        250,
+        47640,
+        3511,
+        5678,
+        5414
+      ],
+      "clicked": [
+        42725
+      ],
+      "model_version": "champion",
+      "latency_ms": 11.209828000573907
+    },
+    {
+      "timestamp": 1514715517.0,
+      "user_id": 29144,
+      "recommendations": [
+        57532,
+        47640,
+        4989,
+        3511,
+        325,
+        68205,
+        7048,
+        45726,
+        5363,
+        5678
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 9.657454999796755
+    },
+    {
+      "timestamp": 1514715523.0,
+      "user_id": 29144,
+      "recommendations": [
+        57532,
+        47640,
+        4989,
+        3511,
+        325,
+        68205,
+        7048,
+        45726,
+        5363,
+        5678
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 11.195270999451168
+    },
+    {
+      "timestamp": 1514715528.0,
+      "user_id": 29144,
+      "recommendations": [
+        57532,
+        47640,
+        68205,
+        7381,
+        4749,
+        34520,
+        1887,
+        81537,
+        79428,
+        7048
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 10.100656000759045
+    },
+    {
+      "timestamp": 1514715536.0,
+      "user_id": 29144,
+      "recommendations": [
+        57532,
+        68205,
+        4989,
+        26471,
+        7381,
+        81537,
+        34520,
+        37384,
+        7048,
+        4749
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 18.755699000394088
+    },
+    {
+      "timestamp": 1514715542.0,
+      "user_id": 29144,
+      "recommendations": [
+        79592,
+        58156,
+        68205,
+        4989,
+        81537,
+        26471,
+        34520,
+        79428,
+        59126,
+        59022
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 9.933205999914207
+    },
+    {
+      "timestamp": 1514715551.0,
+      "user_id": 29144,
+      "recommendations": [
+        27193,
+        61697,
+        44840,
+        45726,
+        31225,
+        50851,
+        79592,
+        42013,
+        47640,
+        58156
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 10.702940000555827
+    },
+    {
+      "timestamp": 1514715558.0,
+      "user_id": 29144,
+      "recommendations": [
+        27193,
+        61697,
+        44840,
+        45726,
+        31225,
+        50851,
+        79592,
+        42013,
+        47640,
+        58156
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 12.38849699984712
+    },
+    {
+      "timestamp": 1514715563.0,
+      "user_id": 162305,
+      "recommendations": [
+        589,
+        2571,
+        165,
+        1136,
+        736,
+        153,
+        1197,
+        3578,
+        1097,
+        1265
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 8.780973000284575
+    },
+    {
+      "timestamp": 1514715569.0,
+      "user_id": 29144,
+      "recommendations": [
+        27193,
+        99112,
+        60753,
+        50851,
+        83613,
+        64030,
+        8131,
+        86644,
+        54004,
+        69306
+      ],
+      "clicked": [
+        69306
+      ],
+      "model_version": "champion",
+      "latency_ms": 9.79220599947439
+    },
+    {
+      "timestamp": 1514715579.0,
+      "user_id": 29144,
+      "recommendations": [
+        59126,
+        34520,
+        99112,
+        63479,
+        7381,
+        79592,
+        59421,
+        7048,
+        94677,
+        64030
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 11.937152000427886
+    },
+    {
+      "timestamp": 1514715583.0,
+      "user_id": 29144,
+      "recommendations": [
+        79428,
+        81537,
+        59022,
+        81788,
+        34520,
+        63479,
+        58156,
+        68205,
+        7258,
+        102686
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 10.771511999337235
+    },
+    {
+      "timestamp": 1514715592.0,
+      "user_id": 29144,
+      "recommendations": [
+        58655,
+        8912,
+        81782,
+        59022,
+        7381,
+        59421,
+        89774,
+        68205,
+        86644,
+        79428
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 10.187021999627177
+    },
+    {
+      "timestamp": 1514715598.0,
+      "user_id": 29144,
+      "recommendations": [
+        102686,
+        33158,
+        68205,
+        103384,
+        60753,
+        8131,
+        79185,
+        62394,
+        71838,
+        34536
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 9.660596000685473
+    },
+    {
+      "timestamp": 1514715604.0,
+      "user_id": 29144,
+      "recommendations": [
+        102686,
+        33158,
+        68205,
+        103384,
+        60753,
+        8131,
+        79185,
+        62394,
+        71838,
+        34536
+      ],
+      "clicked": [],
+      "model_version": "champion",
+      "latency_ms": 9.572724999998172
+    }
+  ]
+}

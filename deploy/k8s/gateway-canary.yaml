@@ -1,0 +1,23 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: shoprank-canary-route
+  namespace: shoprank
+  labels:
+    app: shoprank
+spec:
+  parentRefs:
+    - name: shoprank-gateway
+      namespace: shoprank
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /recommend
+      backendRefs:
+        - name: shoprank-champion
+          port: 8000
+          weight: 90
+        - name: shoprank-challenger
+          port: 8001
+          weight: 10

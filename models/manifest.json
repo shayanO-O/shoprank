@@ -1,0 +1,23 @@
+{
+  "bundle_name": "shoprank-bundle",
+  "bundle_hash": "f8e5fb2f1e097ae384df2ea996d3ca71aacafbe2ffd6e33518c2e2f84344e7e2",
+  "version_tag": "v0.2.0",
+  "git_commit": "88d2489d4ebffa18cd751a22deb53b7257d198c2",
+  "dvc_data_version": "6b51fb2759a8657d3bfcbfc42b592ada",
+  "created_at": "2026-11-25T09:52:45.240923+00:00",
+  "artifacts": {
+    "two_tower": "6084001211cad6f1329094b3ef49b6b9df1d2819cbd97f6e85b79a5cf8ee2ac3",
+    "two_tower.pt": "6084001211cad6f1329094b3ef49b6b9df1d2819cbd97f6e85b79a5cf8ee2ac3",
+    "item_embeddings": "3e61c4aaeaf9fa08fb415855d0c0e50eac913386d8f39656c007c055d45b6786",
+    "item_embeddings.npy": "3e61c4aaeaf9fa08fb415855d0c0e50eac913386d8f39656c007c055d45b6786",
+    "item_id_map": "985d805d8ad5d112b61f73219279e16a09174bc6e3a86e0b23536f17a1fd6290",
+    "item_id_map.json": "985d805d8ad5d112b61f73219279e16a09174bc6e3a86e0b23536f17a1fd6290",
+    "faiss_index": "77f0fd7cfd14ed556f07865dc6d003dded75a8c4950fc14e73cea9aed8ac8c48",
+    "faiss.index": "77f0fd7cfd14ed556f07865dc6d003dded75a8c4950fc14e73cea9aed8ac8c48",
+    "ranker": "9c8893ba9aa6bfd9d152e81374117820a01b47845579caa3207f3d7084543b7c",
+    "ranker.txt": "9c8893ba9aa6bfd9d152e81374117820a01b47845579caa3207f3d7084543b7c"
+  },
+  "metrics": {
+    "ndcg_at_10": 0.31425410097414563
+  }
+}

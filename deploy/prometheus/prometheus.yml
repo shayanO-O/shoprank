@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: "shoprank-router"
+    static_configs:
+      - targets: ["router:8080"]
+
+  - job_name: "shoprank-champion"
+    static_configs:
+      - targets: ["champion:8000"]
+
+  - job_name: "shoprank-challenger"
+    static_configs:
+      - targets: ["challenger:8001"]
