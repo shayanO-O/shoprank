@@ -2,12 +2,13 @@
   "qualified_for_promotion": false,
   "status": "REJECTED",
   "failures": [
-    "NDCG diff -0.0098 (95% CI [-0.0114, -0.0078]) failed margin 0.005"
+    "NDCG diff -0.0098 (95% CI [-0.0114, -0.0078]) failed margin 0.005",
+    "Catalog coverage 2.74% < floor 10.00%"
   ],
   "checks": {
     "ndcg_improvement": {
       "passed": false,
-      "challenger_ndcg": 0.31425410097414563,
+      "challenger_ndcg": 0.2872828698027829,
       "champion_ndcg": 0.0,
       "mean_difference": -0.009756256054852995,
       "ci_95_lower": -0.011444316531615354,
@@ -16,7 +17,7 @@
     },
     "latency_p95": {
       "passed": true,
-      "measured_p95_ms": 3.701943450028011,
+      "measured_p95_ms": 1.7017541495079032,
       "threshold_p95_ms": 30.0
     },
     "shadow_safety": {
@@ -24,8 +25,8 @@
       "note": "Shadow evaluation skipped (not provided)"
     },
     "catalog_coverage": {
-      "passed": true,
-      "measured_coverage": 0.10443864229765012,
+      "passed": false,
+      "measured_coverage": 0.027379185221837375,
       "floor_coverage": 0.1
     },
     "rank_stability": {
